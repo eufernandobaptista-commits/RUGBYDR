@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Match Stats — Coogee Seahorses</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #0a1628; --navy-mid: #132040; --navy-light: #1e3260;
+    --teal: #00c9a7; --teal-dim: #00a085;
+    --white: #f5f7fa; --muted: #8a9ab8;
+    --border: rgba(255,255,255,0.08); --card: rgba(255,255,255,0.04);
+    --radius: 16px; --radius-sm: 10px;
+    --try: #34c759; --conv: #007aff; --pen: #f5a623; --pts: #00c9a7;
+  }
+  html { scroll-behavior: smooth; }
+  body { background: var(--navy); color: var(--white); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+  body::before { content:''; position:fixed; inset:0; background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,201,167,0.1) 0%, transparent 60%); pointer-events:none; z-index:0; }
+  .container { position:relative; z-index:1; max-width:540px; margin:0 auto; padding:1.5rem 1rem 5rem; }
+
+  .header { text-align:center; margin-bottom:1.75rem; }
+  .club-badge { display:inline-flex; align-items:center; justify-content:center; width:52px; height:52px; background:linear-gradient(135deg, var(--teal), var(--teal-dim)); border-radius:50%; margin-bottom:0.75rem; font-size:24px; }
+  .header h1 { font-family:'Bebas Neue', sans-serif; font-size:clamp(1.8rem,7vw,2.6rem); letter-spacing:0.04em; line-height:1; margin-bottom:0.3rem; }
+  .header h1 span { color:var(--teal); }
+  .header .subtitle { font-size:13px; color:var(--muted); }
+
+  .section-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; margin-bottom:1.25rem; }
+  .section-label { font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--teal); font-weight:600; margin-bottom:10px; }
+
+  select, input[type=date] { width:100%; background:rgba(255,255,255,0.06); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--white); font-family:'DM Sans', sans-serif; font-size:15px; padding:12px 14px; appearance:none; -webkit-appearance:none; margin-bottom:10px; }
+  select { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a9ab8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; }
+  select:focus, input:focus { outline:none; border-color:var(--teal); }
+  select option { background:var(--navy-mid); }
+  select:last-child, input:last-child { margin-bottom:0; }
+
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .field-label { font-size:12px; color:var(--muted); margin-bottom:4px; }
+
+  /* Screenshot upload */
+  .upload-area { border:2px dashed rgba(0,201,167,0.3); border-radius:var(--radius-sm); padding:1.5rem; text-align:center; cursor:pointer; transition:all 0.2s; position:relative; }
+  .upload-area:hover { border-color:var(--teal); background:rgba(0,201,167,0.04); }
+  .upload-area.has-image { border-color:var(--teal); border-style:solid; }
+  .upload-icon { font-size:32px; margin-bottom:8px; }
+  .upload-text { font-size:14px; color:var(--muted); }
+  .upload-text strong { color:var(--teal); }
+  .upload-input { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+  .upload-preview { width:100%; border-radius:8px; max-height:200px; object-fit:contain; display:none; }
+  .thumbs { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .thumb { position:relative; width:72px; height:72px; border-radius:8px; overflow:hidden; border:1px solid var(--border); }
+  .thumb img { width:100%; height:100%; object-fit:cover; }
+  .thumb-remove { position:absolute; top:2px; right:2px; width:20px; height:20px; border-radius:50%; background:rgba(0,0,0,0.65); color:#fff; border:none; font-size:13px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; }
+  .thumb-num { position:absolute; bottom:2px; left:2px; background:rgba(0,0,0,0.65); color:#fff; font-size:10px; font-weight:700; padding:1px 5px; border-radius:6px; }
+  .analyze-btn { width:100%; margin-top:10px; padding:12px; background:linear-gradient(135deg, var(--teal), var(--teal-dim)); border:none; border-radius:var(--radius-sm); color:var(--navy); font-family:'Bebas Neue', sans-serif; font-size:1.1rem; letter-spacing:0.06em; cursor:pointer; transition:all 0.2s; display:none; }
+  .analyze-btn:active { transform:scale(0.98); }
+  .analyze-btn:disabled { opacity:0.5; cursor:not-allowed; }
+  .analyze-status { font-size:13px; color:var(--muted); text-align:center; margin-top:8px; min-height:20px; }
+
+  /* Player stat rows */
+  .players-form { display:flex; flex-direction:column; gap:8px; margin-bottom:1.5rem; }
+  .player-stat-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px; }
+  .player-stat-card.has-stats { border-color:rgba(0,201,167,0.3); background:rgba(0,201,167,0.04); }
+  .psc-header { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .psc-name { flex:1; font-weight:600; font-size:14px; }
+  .psc-group { font-size:11px; padding:2px 8px; border-radius:6px; font-weight:600; }
+  .grp-fwd { background:rgba(0,122,255,0.15); color:#6eb0ff; }
+  .grp-back { background:rgba(175,82,222,0.15); color:#c490f0; }
+  .psc-points { font-size:12px; font-weight:700; color:var(--teal); background:rgba(0,201,167,0.12); padding:2px 10px; border-radius:10px; }
+
+  .stat-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .stat-field { text-align:center; }
+  .stat-field-label { font-size:10px; color:var(--muted); margin-bottom:5px; letter-spacing:0.04em; }
+  .stat-stepper { display:flex; align-items:center; justify-content:center; gap:0; background:rgba(255,255,255,0.06); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .step-btn { width:36px; height:36px; border:none; background:transparent; color:var(--muted); font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; transition:background 0.15s; flex-shrink:0; }
+  .step-btn:active { background:rgba(255,255,255,0.1); }
+  .step-val { font-size:17px; font-weight:700; min-width:28px; text-align:center; color:var(--white); }
+  .step-val.nonzero-try  { color:var(--try); }
+  .step-val.nonzero-conv { color:var(--conv); }
+  .step-val.nonzero-pen  { color:var(--pen); }
+  .step-val.nonzero-miss { color:#e25555; }
+  .step-val.nonzero-neg  { color:#ff3b30; }
+
+  .stat-legend { display:flex; gap:14px; flex-wrap:wrap; font-size:11px; color:var(--muted); margin-bottom:1rem; }
+  .stat-legend span { display:flex; align-items:center; gap:4px; }
+  .dot { width:8px; height:8px; border-radius:50%; }
+
+  /* Summary totals */
+  .totals-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:1.5rem; }
+  .total-stat { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:10px 8px; text-align:center; }
+  .total-val { font-size:22px; font-weight:700; }
+  .total-lbl { font-size:10px; color:var(--muted); margin-top:3px; }
+  .val-try { color:var(--try); } .val-conv { color:var(--conv); } .val-pen { color:var(--pen); } .val-pts { color:var(--pts); }
+
+  /* Submit */
+  .submit-section { position:sticky; bottom:0; padding:1rem 0 0; background:linear-gradient(to top, var(--navy) 70%, transparent); }
+  .submit-btn { width:100%; padding:16px; background:linear-gradient(135deg, var(--teal), var(--teal-dim)); border:none; border-radius:var(--radius-sm); color:var(--navy); font-family:'Bebas Neue', sans-serif; font-size:1.4rem; letter-spacing:0.06em; cursor:pointer; transition:all 0.2s; }
+  .submit-btn:active { transform:scale(0.98); }
+  .submit-btn:disabled { opacity:0.35; cursor:not-allowed; }
+
+  /* Success */
+  .success-screen { display:none; text-align:center; padding:3rem 1rem; }
+  .success-icon { width:80px; height:80px; border-radius:50%; background:linear-gradient(135deg, var(--teal), var(--teal-dim)); display:flex; align-items:center; justify-content:center; font-size:36px; margin:0 auto 1.5rem; }
+  .success-screen h2 { font-family:'Bebas Neue', sans-serif; font-size:2.5rem; margin-bottom:0.5rem; }
+  .success-screen p { color:var(--muted); font-size:15px; margin-bottom:1.5rem; }
+  .another-btn { padding:12px 28px; border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--muted); font-family:'DM Sans', sans-serif; font-size:14px; cursor:pointer; background:none; transition:all 0.2s; }
+  .another-btn:hover { border-color:var(--teal); color:var(--teal); }
+
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1c1c1e; color:#fff; padding:10px 22px; border-radius:20px; font-size:14px; opacity:0; transition:opacity 0.25s; pointer-events:none; z-index:999; white-space:nowrap; }
+  .toast.show { opacity:1; }
+
+  /* Tabs */
+  .tabs { display:flex; background:rgba(255,255,255,0.04); border-radius:12px; padding:3px; gap:2px; margin-bottom:1.5rem; }
+  .tab-btn { flex:1; padding:10px 4px; font-size:13px; font-weight:600; cursor:pointer; border:none; background:none; color:var(--muted); border-radius:9px; transition:all 0.15s; font-family:'DM Sans',sans-serif; }
+  .tab-btn.active { background:rgba(0,201,167,0.15); color:var(--teal); }
+
+  /* Season view */
+  .summary-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:6px 14px; }
+  .summary-row { display:flex; justify-content:space-between; align-items:center; font-size:13px; padding:7px 0; }
+  .summary-row + .summary-row { border-top:1px solid var(--border); }
+  .summary-key { color:var(--muted); }
+  .summary-val { font-weight:600; }
+  .pill { font-size:11px; padding:2px 8px; border-radius:6px; font-weight:700; }
+  .pill-w { background:rgba(52,199,89,0.15); color:#34c759; }
+  .pill-l { background:rgba(255,59,48,0.15); color:#ff3b30; }
+  .pill-d { background:rgba(245,166,35,0.15); color:#f5a623; }
+  .pill-wo { background:rgba(255,255,255,0.08); color:var(--muted); }
+
+  .report-table { width:100%; border-collapse:collapse; font-size:13px; background:var(--card); }
+  .report-table th { background:rgba(255,255,255,0.04); padding:9px 10px; text-align:center; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.03em; white-space:nowrap; }
+  .report-table td { padding:9px 10px; text-align:center; border-top:1px solid var(--border); white-space:nowrap; }
+  .report-table tbody tr:nth-child(odd) td { background:rgba(255,255,255,0.015); }
+  .loading { text-align:center; padding:3rem; color:var(--muted); font-size:14px; }
+
+  /* Match Day Team */
+  .mdt-card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:9px 11px; margin-bottom:7px; }
+  .mdt-card.changed { border-color:var(--teal); }
+  .mdt-card-pos { font-size:12px; font-weight:700; color:var(--white); margin-bottom:6px; }
+  .mdt-card-pos .num { color:var(--teal); }
+  .mdt-line { display:grid; grid-template-columns:60px 1fr; gap:8px; align-items:center; }
+  .mdt-line + .mdt-line { margin-top:5px; }
+  .mdt-line-label { font-size:11px; font-weight:600; }
+  .mdt-line-label.sel { color:#6eb0ff; }
+  .mdt-line-label.played { color:var(--teal); }
+  .mdt-selname { font-size:14px; color:var(--white); font-weight:500; }
+  .mdt-fullsel { width:100%; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:8px; color:var(--white); font-family:'DM Sans',sans-serif; font-size:14px; padding:9px 10px; appearance:none; -webkit-appearance:none; }
+  .mdt-fullsel:focus { outline:none; border-color:var(--teal); }
+  .mdt-fullsel option { background:var(--navy-mid); }
+  .mdt-fullsel.changed { border-color:var(--teal); background:rgba(0,201,167,0.08); }
+  .mdt-bench-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); margin:14px 0 7px; text-align:center; }
+  .menu-btn { display:inline-flex; align-items:center; gap:4px; font-size:14px; font-weight:600; color:var(--teal); background:var(--card); border:1px solid var(--border); border-radius:10px; padding:9px 16px; text-decoration:none; transition:all 0.15s; -webkit-tap-highlight-color:transparent; }
+  .menu-btn:active { transform:scale(0.97); background:rgba(0,201,167,0.08); }
+  .menu-btn-bottom { display:block; text-align:center; margin-top:1.75rem; }
+
+  /* Draw Details badge */
+  .draw-badge { position:relative; width:100%; aspect-ratio:4/5; border-radius:16px; overflow:hidden; background:#0a1628; box-shadow:0 8px 30px rgba(0,0,0,0.4); }
+  .draw-bg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 30%; }
+  .draw-overlay { position:absolute; inset:0; background:linear-gradient(180deg, rgba(10,22,40,0.55) 0%, rgba(10,22,40,0.15) 35%, rgba(10,22,40,0.5) 62%, rgba(10,22,40,0.92) 100%); }
+  .draw-content { position:absolute; inset:0; display:flex; flex-direction:column; padding:22px 22px 26px; color:#fff; }
+  .draw-top { display:flex; align-items:center; gap:9px; }
+  .draw-crest { width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg,#00c9a7,#00a085); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+  .draw-club { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:0.06em; line-height:1; }
+  .draw-club span { color:#00c9a7; }
+  .draw-sub { font-size:10px; color:rgba(255,255,255,0.75); letter-spacing:0.08em; text-transform:uppercase; margin-top:2px; }
+  .draw-when { margin-top:auto; }
+  .draw-day { font-family:'Bebas Neue',sans-serif; font-size:clamp(2.2rem,11vw,3.2rem); line-height:0.95; letter-spacing:0.03em; color:#00c9a7; text-shadow:0 2px 14px rgba(0,0,0,0.7); }
+  .draw-vs { font-family:'Bebas Neue',sans-serif; font-size:clamp(1.6rem,8vw,2.4rem); line-height:1; letter-spacing:0.02em; text-shadow:0 2px 14px rgba(0,0,0,0.8); margin-top:2px; }
+  .draw-meta { margin-top:12px; display:flex; flex-direction:column; gap:5px; font-size:14px; font-weight:500; text-shadow:0 1px 8px rgba(0,0,0,0.9); }
+  .draw-meta .row { display:flex; align-items:center; gap:8px; }
+  .draw-warm { margin-top:13px; background:rgba(0,201,167,0.92); color:#06251f; font-weight:700; font-size:13px; padding:9px 13px; border-radius:10px; line-height:1.35; }
+  .draw-rsvp { margin-top:10px; font-size:11px; color:rgba(255,255,255,0.85); letter-spacing:0.02em; }
+  /* Controls */
+  .draw-photo-area { border:2px dashed rgba(0,201,167,0.35); border-radius:12px; padding:1.1rem; text-align:center; cursor:pointer; position:relative; margin-bottom:10px; }
+  .draw-photo-area.has { border-style:solid; border-color:var(--teal); }
+  .draw-slider { width:100%; }
+  .draw-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+  .draw-caption-box { background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:10px; padding:11px 13px; font-size:13px; color:var(--white); line-height:1.5; white-space:pre-wrap; margin-top:10px; }
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+<div class="container">
+
+  <a href="index.html" class="menu-btn">‹ Main menu</a>
+
+  <div class="header">
+    <div class="club-badge">🏆</div>
+    <h1>Match <span>Stats</span></h1>
+    <p class="subtitle">Coogee Seahorses JRUFC · Manager entry</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="season">Season</button>
+    <button class="tab-btn" data-tab="enter">Enter Stats</button>
+    <button class="tab-btn" data-tab="team">Match Team</button>
+    <button class="tab-btn" data-tab="draw">Draw Details</button>
+  </div>
+
+  <!-- Season tab -->
+  <div id="season-tab"><div class="loading">Loading season data…</div></div>
+
+  <!-- Match Day Team tab -->
+  <div id="team-tab" style="display:none"><div class="loading">Loading…</div></div>
+
+  <!-- Draw Details tab -->
+  <div id="draw-tab" style="display:none"></div>
+
+  <!-- Enter Match Stats tab -->
+  <div id="enter-tab" style="display:none">
+
+  <div id="main-form">
+
+    <!-- Match selector -->
+    <div class="section-card">
+      <div class="section-label">Match details</div>
+      <div class="grid-2">
+        <div>
+          <div class="field-label">Team</div>
+          <select id="team-select">
+            <option value="seahorses">Coogee 11 (Friday)</option>
+            <option value="barbarians">Coogee Barbarians 11 (Sunday)</option>
+          </select>
+        </div>
+        <div>
+          <div class="field-label">Round</div>
+          <select id="round-select">
+            <option value="">Select round…</option>
+          </select>
+        </div>
+      </div>
+      <div id="match-info" style="font-size:13px;color:var(--muted);margin-top:4px;min-height:18px"></div>
+      <div class="grid-2" style="margin-top:10px">
+        <div>
+          <div class="field-label">Our score (from stats)</div>
+          <div id="our-score" style="background:rgba(0,201,167,0.1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-size:20px;font-weight:700;color:var(--teal);text-align:center">0</div>
+        </div>
+        <div>
+          <div class="field-label">Opponent score</div>
+          <input type="number" id="opp-score" min="0" inputmode="numeric" placeholder="0" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);font-family:'DM Sans',sans-serif;font-size:18px;font-weight:700;text-align:center;padding:9px 12px">
+        </div>
+      </div>
+      <div id="result-preview" style="font-size:13px;font-weight:600;text-align:center;margin-top:8px;min-height:18px"></div>
+    </div>
+
+    <!-- Screenshot upload -->
+    <div class="section-card">
+      <div class="section-label">Rugby Xplorer screenshots (optional)</div>
+      <div class="upload-area" id="upload-area">
+        <input type="file" class="upload-input" id="screenshot-input" accept="image/*" multiple>
+        <div id="upload-prompt">
+          <div class="upload-icon">📸</div>
+          <div class="upload-text"><strong>Tap to upload</strong> one or more Rugby Xplorer screenshots<br>Stats will be pre-filled automatically</div>
+        </div>
+      </div>
+      <div class="thumbs" id="thumbs"></div>
+      <button class="analyze-btn" id="analyze-btn">🔍 Analyse Screenshots</button>
+      <div class="analyze-status" id="analyze-status"></div>
+    </div>
+
+    <!-- Stat legend -->
+    <div class="stat-legend">
+      <span><div class="dot" style="background:var(--try)"></div>Tries (5pts)</span>
+      <span><div class="dot" style="background:var(--conv)"></div>Conv made (2pts)</span>
+      <span><div class="dot" style="background:#e25555"></div>Conv missed</span>
+      <span><div class="dot" style="background:var(--pen)"></div>Penalties (3pts)</span>
+    </div>
+
+    <!-- Running totals -->
+    <div class="totals-grid">
+      <div class="total-stat"><div class="total-val val-try" id="tot-tries">0</div><div class="total-lbl">Tries</div></div>
+      <div class="total-stat"><div class="total-val val-conv" id="tot-conv">0</div><div class="total-lbl">Conversions</div></div>
+      <div class="total-stat"><div class="total-val val-pen" id="tot-pen">0</div><div class="total-lbl">Penalties</div></div>
+      <div class="total-stat"><div class="total-val val-pts" id="tot-pts">0</div><div class="total-lbl">Total pts</div></div>
+    </div>
+
+    <!-- Player rows -->
+    <div class="players-form" id="players-form"></div>
+
+    <div class="submit-section">
+      <button class="submit-btn" id="submit-btn">Save Match Stats</button>
+    </div>
+
+  </div>
+
+  <!-- Success -->
+  <div class="success-screen" id="success-screen">
+    <div class="success-icon">🏆</div>
+    <h2>Stats <span style="color:var(--teal)">Saved!</span></h2>
+    <p id="success-label"></p>
+    <div class="totals-grid" style="max-width:320px;margin:1.5rem auto">
+      <div class="total-stat"><div class="total-val val-try" id="s-tries">0</div><div class="total-lbl">Tries</div></div>
+      <div class="total-stat"><div class="total-val val-conv" id="s-conv">0</div><div class="total-lbl">Conv</div></div>
+      <div class="total-stat"><div class="total-val val-pen" id="s-pen">0</div><div class="total-lbl">Pen</div></div>
+      <div class="total-stat"><div class="total-val val-pts" id="s-pts">0</div><div class="total-lbl">Points</div></div>
+    </div>
+    <button class="another-btn" id="another-btn">Enter another match</button>
+  </div>
+
+  </div><!-- /enter-tab -->
+
+  <a href="index.html" class="menu-btn menu-btn-bottom">‹ Back to main menu</a>
+
+</div>
+<script>
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw4qLLU0jH1BrDDFlncAhqGBowhDQQH6p0FtSN9SP7GqLLk44dw52l9BA_sjOQNDk7O/exec';
+
+const FIXTURES = {
+  seahorses: [
+    { round:1, date:'Fri 24 Apr', isoDate:'2026-04-24', opponent:'Burraneer Gold',        venue:'John Dwyer Park',           time:'7:10pm',  result:'L 41–12' },
+    { round:2, date:'Fri 1 May',  isoDate:'2026-05-01', opponent:'Clovelly Eagles Blue',  venue:'Nagle Park Field 2',        time:'5:30pm',  result:'W 36–12' },
+    { round:3, date:'Fri 8 May',  isoDate:'2026-05-08', opponent:'Rockdale',              venue:'C.A Redmond Oval',          time:'7:20pm',  result:'L 36–12' },
+    { round:4, date:'Fri 15 May', isoDate:'2026-05-15', opponent:'Burraneer Blue',        venue:'Nagle Park Field 1',        time:'7:20pm',  result:'W 31–19' },
+    { round:5, date:'Fri 22 May', isoDate:'2026-05-22', opponent:'Maroubra Missiles',     venue:'Nagle Park Field 2',        time:'5:30pm',  result:'L 36–12' },
+    { round:6, date:'Fri 29 May', isoDate:'2026-05-29', opponent:'Oatley',                venue:'Nagle Park Field 2',        time:'5:30pm',  result:'Washout' },
+    { round:7, date:'Fri 12 Jun', isoDate:'2026-06-12', opponent:'Clovelly Eagles White', venue:'Nagle Park Field 1',        time:'8:00pm',  result:'W 54–0' },
+    { round:8, date:'Fri 19 Jun', isoDate:'2026-06-19', opponent:'Burraneer Gold',        venue:'Nagle Park Field 1',        time:'8:00pm',  result:'' },
+  ],
+  barbarians: [
+    { round:1, date:'Sun 26 Apr', isoDate:'2026-04-26', opponent:'Hunters Hill Black',    venue:'Boronia Park Field 1',      time:'9:30am',  result:'W 26–5' },
+    { round:2, date:'Sun 3 May',  isoDate:'2026-05-03', opponent:'Norths Pirates',        venue:'Nagle Park Field 1',        time:'11:00am', result:'L 14–29' },
+    { round:3, date:'Sun 10 May', isoDate:'2026-05-10', opponent:'Wakehurst',             venue:'Wakehurst Rugby Park',      time:'9:50am',  result:'D 26–26' },
+    { round:4, date:'Sun 17 May', isoDate:'2026-05-17', opponent:'Wahroonga Gold',        venue:'Nagle Park Field 1',        time:'9:10am',  result:'W 36–7' },
+    { round:5, date:'Sun 24 May', isoDate:'2026-05-24', opponent:'Mosman Dolphins',       venue:'Nagle Park Field 2',        time:'9:00am',  result:'W 43–5' },
+    { round:6, date:'Sun 31 May', isoDate:'2026-05-31', opponent:'Hornsby Lions',         venue:'Mark Taylor Oval, Waitara', time:'9:30am',  result:'Washout' },
+    { round:7, date:'Sun 14 Jun', isoDate:'2026-06-14', opponent:'Allambie Green',        venue:'Nagle Park Field 2',        time:'10:00am', result:'' },
+    { round:8, date:'Sun 21 Jun', isoDate:'2026-06-21', opponent:'Hunters Hill Black',    venue:'Nagle Park Field 2',        time:'10:00am', result:'' },
+    { round:9, date:'Sun 26 Jul', isoDate:'2026-07-26', opponent:'Norths Pirates',        venue:'Tunks Park 3',              time:'10:20am', result:'' },
+    { round:10,date:'Sun 2 Aug',  isoDate:'2026-08-02', opponent:'Wakehurst',             venue:'Nagle Park Field 2',        time:'10:00am', result:'' },
+  ]
+};
+
+// All players alphabetical
+const PLAYERS = [
+  {name:'Aidan Schulz',    group:'Back'},    {name:'Archer Price',     group:'Back'},
+  {name:'Beau Hack',        group:'Back'},    {name:'Cade Forshaw',     group:'Back'},
+  {name:'Edward Macassey',  group:'Back'},    {name:'Elliot Dean',      group:'Forward'},
+  {name:'Freddie Kirrane',  group:'Back'},    {name:'Henry Scott',      group:'Forward'},
+  {name:'Jackson Kendall',  group:'Forward'}, {name:'Kai Lianto',       group:'Forward'},
+  {name:'Kycen Puroku',     group:'Back'},    {name:'Lachlan McDonald', group:'Back'},
+  {name:'Max Boss',         group:'Back'},    {name:'Michael Dunworth', group:'Forward'},
+  {name:'Nathan Evans',     group:'Back'},
+  {name:'Patrick Keenen',   group:'Forward'}, {name:'Rafferty Moffitt', group:'Back'},
+  {name:'Sasha Hayim',      group:'Back'},    {name:'Teddy Russell',    group:'Forward'},
+  {name:'Theo Deichsel',    group:'Forward'}, {name:'Thomas Morgan',    group:'Back'},
+  {name:'Watene Falemanu',  group:'Forward'}, {name:'William English',  group:'Forward'},
+  {name:'Xavier Reddy',     group:'Forward'}, {name:'Xavier Saunders',  group:'Back'},
+];
+
+// stats[playerName] = { tries, convMade, convMissed, penalties }
+let stats = {};
+PLAYERS.forEach(p => { stats[p.name] = { tries:0, convMade:0, convMissed:0, penalties:0 }; });
+
+let currentTeam = 'seahorses';
+let currentRound = null;
+let screenshotImages = []; // array of base64 strings (no data: prefix)
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function calcPoints(s) {
+  return s.tries * 5 + s.convMade * 2 + s.penalties * 3;
+}
+
+function updateTotals() {
+  let tries=0, conv=0, pen=0;
+  Object.values(stats).forEach(s => { tries+=s.tries; conv+=s.convMade; pen+=s.penalties; });
+  document.getElementById('tot-tries').textContent = tries;
+  document.getElementById('tot-conv').textContent = conv;
+  document.getElementById('tot-pen').textContent = pen;
+  const pts = tries*5 + conv*2 + pen*3;
+  document.getElementById('tot-pts').textContent = pts;
+  const osEl = document.getElementById('our-score'); if (osEl) osEl.textContent = pts;
+  updateResultPreview();
+}
+
+function ourScoreFromStats() {
+  let tries=0, conv=0, pen=0;
+  Object.values(stats).forEach(s => { tries+=s.tries; conv+=s.convMade; pen+=s.penalties; });
+  return tries*5 + conv*2 + pen*3;
+}
+function computeResult(ourScore, oppScore) {
+  if (oppScore === '' || oppScore === null || isNaN(oppScore)) return '';
+  const o = +oppScore;
+  if (ourScore > o) return `W ${ourScore}–${o}`;
+  if (ourScore < o) return `L ${ourScore}–${o}`;
+  return `D ${ourScore}–${o}`;
+}
+function updateResultPreview() {
+  const el = document.getElementById('result-preview'); if (!el) return;
+  const oppEl = document.getElementById('opp-score');
+  const opp = oppEl ? oppEl.value : '';
+  const result = computeResult(ourScoreFromStats(), opp);
+  if (!result) { el.textContent = ''; return; }
+  const color = result.startsWith('W') ? 'var(--try)' : result.startsWith('L') ? '#ff3b30' : 'var(--pen)';
+  el.innerHTML = `Result: <span style="color:${color}">${result}</span>`;
+}
+
+function buildPlayerForm() {
+  const form = document.getElementById('players-form');
+  form.innerHTML = PLAYERS.map(p => {
+    const s = stats[p.name];
+    const pts = calcPoints(s);
+    return `
+    <div class="player-stat-card ${pts>0||s.tries>0||s.convMade>0||s.convMissed>0||s.penalties>0?'has-stats':''}" id="psc-${p.name.replace(/\s+/g,'_')}">
+      <div class="psc-header">
+        <span class="psc-name">${p.name}</span>
+        <span class="psc-group ${p.group==='Forward'?'grp-fwd':'grp-back'}">${p.group}</span>
+        <span class="psc-points" id="pts-${p.name.replace(/\s+/g,'_')}" style="${pts===0?'opacity:0.3':''}">
+          ${pts}pts
+        </span>
+      </div>
+      <div class="stat-row">
+        ${buildStepper(p.name, 'tries',     'Tries',      'try')}
+        ${buildStepper(p.name, 'convMade',  'Conv ✓',     'conv')}
+        ${buildStepper(p.name, 'convMissed','Conv ✗',     'miss')}
+        </div>
+      <div class="stat-row" style="margin-top:6px;grid-template-columns:1fr 1fr 1fr">
+        ${buildStepper(p.name, 'penalties', 'Penalty',    'pen')}
+        <div></div><div></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Attach stepper events
+  form.querySelectorAll('.step-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const player = btn.dataset.player;
+      const field  = btn.dataset.field;
+      const dir    = parseInt(btn.dataset.dir);
+      stats[player][field] = Math.max(-15, Math.min(15, stats[player][field] + dir));
+      updatePlayerCard(player);
+      updateTotals();
+    });
+  });
+}
+
+function buildStepper(player, field, label, colorClass) {
+  const val = stats[player][field];
+  return `
+    <div class="stat-field">
+      <div class="stat-field-label">${label}</div>
+      <div class="stat-stepper">
+        <button class="step-btn" data-player="${player}" data-field="${field}" data-dir="-1">−</button>
+        <span class="step-val ${val<0?'nonzero-neg':val>0?'nonzero-'+colorClass:''}" id="sv-${player.replace(/\s+/g,'_')}-${field}">${val}</span>
+        <button class="step-btn" data-player="${player}" data-field="${field}" data-dir="1">+</button>
+      </div>
+    </div>`;
+}
+
+function updatePlayerCard(playerName) {
+  const s = stats[playerName];
+  const pts = calcPoints(s);
+  const key = playerName.replace(/\s+/g,'_');
+  const card = document.getElementById('psc-'+key);
+  card.className = 'player-stat-card ' + (pts>0||s.convMissed>0?'has-stats':'');
+
+  const ptsEl = document.getElementById('pts-'+key);
+  ptsEl.textContent = pts+'pts';
+  ptsEl.style.opacity = pts===0?'0.3':'1';
+
+  const fields = ['tries','convMade','convMissed','penalties'];
+  const colors = ['try','conv','miss','pen'];
+  fields.forEach((f,i) => {
+    const el = document.getElementById(`sv-${key}-${f}`);
+    if (el) {
+      el.textContent = s[f];
+      el.className = 'step-val ' + (s[f]<0?'nonzero-neg':s[f]>0?'nonzero-'+colors[i]:'');
+    }
+  });
+}
+
+// Round selector
+function populateRounds() {
+  const sel = document.getElementById('round-select');
+  const fixtures = FIXTURES[currentTeam];
+  sel.innerHTML = '<option value="">Select round…</option>' +
+    fixtures.map(f => `<option value="${f.round}">Round ${f.round} — ${f.opponent} (${f.date})${f.result?' · '+f.result:''}</option>`).join('');
+  // Auto-select most recent played round
+  const played = fixtures.filter(f => f.result);
+  if (played.length) sel.value = played[played.length-1].round;
+  updateMatchInfo();
+}
+
+function updateMatchInfo() {
+  const fixtures = FIXTURES[currentTeam];
+  const round = parseInt(document.getElementById('round-select').value);
+  currentRound = round || null;
+  const f = fixtures.find(x => x.round === round);
+  const info = document.getElementById('match-info');
+  const res = f ? effectiveResult(currentTeam, f) : '';
+  info.textContent = f ? `${f.date} · vs ${f.opponent}${res?' · '+res:''}` : '';
+  // Pre-fill opponent score from an existing saved result (so re-entry edits it)
+  const oppEl = document.getElementById('opp-score');
+  if (oppEl) {
+    const label = currentTeam==='seahorses'?'Coogee 11':'Coogee Barbarians 11';
+    const live = f ? liveResults[`${f.round}|${label}`] : null;
+    oppEl.value = (live && live.oppScore!=null && live.oppScore!=='') ? live.oppScore : '';
+  }
+  updateResultPreview();
+  applyExistingStats(); // load any stats already saved for this round/team
+}
+
+// Load existing per-player stats for the selected round and pre-fill the steppers
+async function applyExistingStats() {
+  PLAYERS.forEach(p => { stats[p.name] = {tries:0,convMade:0,convMissed:0,penalties:0}; });
+  buildPlayerForm(); updateTotals();
+  if (!currentRound) return;
+  const label = currentTeam==='seahorses'?'Coogee 11':'Coogee Barbarians 11';
+  if (!seasonMatchStats.length) {
+    try { const d=await (await fetch(APPS_SCRIPT_URL+'?action=getMatchStats')).json(); if (d&&d.success) seasonMatchStats=d.records||[]; } catch(e){}
+  }
+  let any = false;
+  seasonMatchStats.filter(r => +r.round===currentRound && r.team===label).forEach(r => {
+    const name = findPlayer(r.player) || r.player;
+    if (stats[name]) { // assign (each row holds that player's match totals) — robust to duplicates
+      stats[name] = { tries:+r.tries||0, convMade:+r.convMade||0, convMissed:+r.convMissed||0, penalties:+r.penalties||0 };
+      any = true;
+    }
+  });
+  if (any) { buildPlayerForm(); updateTotals(); showToast('Loaded existing stats for this round'); }
+}
+
+document.getElementById('team-select').addEventListener('change', e => {
+  currentTeam = e.target.value; populateRounds();
+});
+document.getElementById('round-select').addEventListener('change', updateMatchInfo);
+document.getElementById('opp-score').addEventListener('input', updateResultPreview);
+
+// Screenshot upload — supports multiple images
+const screenshotInput = document.getElementById('screenshot-input');
+const uploadPrompt    = document.getElementById('upload-prompt');
+const analyzeBtn      = document.getElementById('analyze-btn');
+const analyzeStatus   = document.getElementById('analyze-status');
+const thumbsEl        = document.getElementById('thumbs');
+const screenshotDataUrls = []; // keep full data URLs for thumbnail rendering
+
+// Convert any image file to a downscaled JPEG data URL.
+// This normalises PNG/HEIC/etc to JPEG (the format the AI expects) and
+// shrinks large phone screenshots so the request stays small.
+function fileToJpeg(file, maxEdge = 1568, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (Math.max(width, height) > maxEdge) {
+          const scale = maxEdge / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff'; // flatten any transparency
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = ev.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+screenshotInput.addEventListener('change', async e => {
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
+  analyzeStatus.textContent = 'Processing image' + (files.length>1?'s':'') + '…';
+  for (const file of files) {
+    try {
+      const jpegUrl = await fileToJpeg(file);
+      screenshotImages.push(jpegUrl.split(',')[1]);
+      screenshotDataUrls.push(jpegUrl);
+    } catch(err) {
+      console.warn('Could not process image', err);
+    }
+  }
+  renderThumbs();
+  // allow re-selecting the same file again later
+  screenshotInput.value = '';
+});
+
+function renderThumbs() {
+  thumbsEl.innerHTML = screenshotDataUrls.map((url,i)=>`
+    <div class="thumb">
+      <img src="${url}" alt="Screenshot ${i+1}">
+      <span class="thumb-num">${i+1}</span>
+      <button type="button" class="thumb-remove" data-idx="${i}" title="Remove">×</button>
+    </div>`).join('');
+  thumbsEl.querySelectorAll('.thumb-remove').forEach(btn=>{
+    btn.addEventListener('click', () => {
+      const idx = +btn.dataset.idx;
+      screenshotImages.splice(idx,1);
+      screenshotDataUrls.splice(idx,1);
+      renderThumbs();
+    });
+  });
+  const has = screenshotImages.length > 0;
+  document.getElementById('upload-area').classList.toggle('has-image', has);
+  uploadPrompt.style.display = has ? 'none' : 'block';
+  analyzeBtn.style.display = has ? 'block' : 'none';
+  analyzeBtn.textContent = '🔍 Analyse Screenshot' + (screenshotImages.length>1?'s ('+screenshotImages.length+')':'');
+  analyzeStatus.textContent = has ? `${screenshotImages.length} screenshot${screenshotImages.length>1?'s':''} ready — tap Analyse to extract stats` : '';
+}
+
+analyzeBtn.addEventListener('click', async () => {
+  if (!screenshotImages.length) return;
+  analyzeBtn.disabled = true;
+  analyzeBtn.textContent = '⏳ Analysing…';
+  analyzeStatus.textContent = `Sending ${screenshotImages.length} screenshot${screenshotImages.length>1?'s':''} to AI for analysis…`;
+  try {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'analyzeScreenshot',
+        imagesBase64: screenshotImages,            // new: array of images
+        imageBase64: screenshotImages[0],          // back-compat: first image
+        team: currentTeam === 'seahorses' ? 'Coogee 11' : 'Coogee Barbarians 11',
+        roster: PLAYERS.map(p => p.name)           // exact squad names for matching
+      })
+    });
+    const data = await res.json();
+    if (data.success && data.stats) {
+      if (!confirmScreenshotMatch(data.stats)) {
+        analyzeStatus.textContent = '⚠️ Cancelled — screenshot did not match the selected round';
+        analyzeBtn.disabled = false; analyzeBtn.textContent = '🔍 Re-analyse Screenshot' + (screenshotImages.length>1?'s ('+screenshotImages.length+')':'');
+        return;
+      }
+      applyExtractedStats(data.stats);
+      analyzeStatus.textContent = `✅ Stats extracted from ${screenshotImages.length} screenshot${screenshotImages.length>1?'s':''} — review and adjust below`;
+    } else {
+      analyzeStatus.textContent = '⚠️ Could not extract stats — enter manually below';
+    }
+  } catch(e) {
+    analyzeStatus.textContent = '⚠️ Analysis failed — enter stats manually';
+  }
+  analyzeBtn.disabled = false;
+  analyzeBtn.textContent = '🔍 Re-analyse Screenshot' + (screenshotImages.length>1?'s ('+screenshotImages.length+')':'');
+});
+
+// Cross-check the screenshot's round/date against the selected round; prompt on mismatch
+function confirmScreenshotMatch(extracted) {
+  const f = FIXTURES[currentTeam].find(x => x.round === currentRound);
+  if (!f) return true;
+  const shotRound = extracted.roundNumber;
+  const shotDate  = extracted.matchDate; // expected ISO YYYY-MM-DD
+  const reasons = [];
+  if (shotRound != null && shotRound !== '' && +shotRound !== +currentRound) {
+    reasons.push(`• Screenshot shows Round ${shotRound}, you selected Round ${currentRound}`);
+  }
+  if (shotDate && /^\d{4}-\d{2}-\d{2}$/.test(shotDate) && shotDate !== f.isoDate) {
+    reasons.push(`• Screenshot date ${shotDate}, selected match ${f.date} (${f.isoDate})`);
+  }
+  if (!reasons.length) return true;
+  return confirm('⚠️ This screenshot may not match the round you selected:\n\n' + reasons.join('\n') +
+    `\n\nSelected: Round ${currentRound} vs ${f.opponent} (${f.date}).\n\nApply these stats to Round ${currentRound} anyway?`);
+}
+
+function applyExtractedStats(extracted) {
+  // extracted: { tries:[{player,team}], conversions:[{player,made,team}], penalties:[{player,team}] }
+  // Reset all first
+  PLAYERS.forEach(p => { stats[p.name] = { tries:0, convMade:0, convMissed:0, penalties:0 }; });
+
+  const ourTeam = currentTeam === 'seahorses' ? 'Coogee 11' : 'Coogee Barbarians 11';
+
+  (extracted.tries || []).forEach(t => {
+    if (t.team === ourTeam || !t.team) {
+      const p = findPlayer(t.player);
+      if (p) stats[p].tries++;
+    }
+  });
+  (extracted.conversions || []).forEach(c => {
+    if (c.team === ourTeam || !c.team) {
+      const p = findPlayer(c.player);
+      if (p) { if (c.made) stats[p].convMade++; else stats[p].convMissed++; }
+    }
+  });
+  (extracted.penalties || []).forEach(pen => {
+    if (pen.team === ourTeam || !pen.team) {
+      const p = findPlayer(pen.player);
+      if (p) stats[p].penalties++;
+    }
+  });
+
+  buildPlayerForm();
+  updateTotals();
+  showToast('Stats pre-filled from screenshot');
+}
+
+function findPlayer(name) {
+  if (!name) return null;
+  const lower = name.toLowerCase().trim();
+  const surname = lower.split(' ').slice(-1)[0];
+  const first   = lower.split(' ')[0];
+  // 1. Exact full-name match (preferred — AI returns roster names)
+  let m = PLAYERS.find(p => p.name.toLowerCase() === lower);
+  if (m) return m.name;
+  // 2. Full name contained either direction (handles trailing minute text etc.)
+  m = PLAYERS.find(p => lower.includes(p.name.toLowerCase()) || p.name.toLowerCase().includes(lower));
+  if (m) return m.name;
+  // 3. Surname match — distinguishes players who share a first name
+  m = PLAYERS.find(p => p.name.toLowerCase().split(' ').slice(-1)[0] === surname);
+  if (m) return m.name;
+  // 4. First-name fallback (last resort, only if surname didn't resolve)
+  m = PLAYERS.find(p => p.name.toLowerCase().split(' ')[0] === first);
+  return m ? m.name : null;
+}
+
+// Submit
+document.getElementById('submit-btn').addEventListener('click', async () => {
+  if (!currentRound) { showToast('Please select a round'); return; }
+  const btn = document.getElementById('submit-btn');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+
+  const fixture = FIXTURES[currentTeam].find(f => f.round === currentRound);
+  const records = PLAYERS
+    .filter(p => { const s = stats[p.name]; return s.tries||s.convMade||s.convMissed||s.penalties; })
+    .map(p => ({ player:p.name, group:p.group, ...stats[p.name] }));
+
+  try {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'submitMatchStats',
+        round: currentRound,
+        team: currentTeam === 'seahorses' ? 'Coogee 11' : 'Coogee Barbarians 11',
+        date: fixture ? fixture.isoDate : '',
+        opponent: fixture ? fixture.opponent : '',
+        records,
+        screenshotsBase64: screenshotImages,                    // new: all screenshots
+        screenshotBase64: screenshotImages[0] || null            // back-compat: first
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      // Save the match result too (our score from stats + entered opponent score)
+      const teamLabelStr = currentTeam === 'seahorses' ? 'Coogee 11' : 'Coogee Barbarians 11';
+      const ourScore = ourScoreFromStats();
+      const oppVal = document.getElementById('opp-score').value;
+      const result = computeResult(ourScore, oppVal);
+      if (result) {
+        fetch(APPS_SCRIPT_URL, { method:'POST', body: JSON.stringify({
+          action:'saveResult', round:currentRound, team:teamLabelStr,
+          opponent: fixture ? fixture.opponent : '', date: fixture ? fixture.isoDate : '',
+          ourScore, oppScore:+oppVal, result
+        })});
+      }
+      showSuccess(fixture, records);
+    }
+    else { showToast('Save failed — try again'); btn.textContent='Save Match Stats'; btn.disabled=false; }
+  } catch(e) {
+    showToast('Connection error — saved locally');
+    const local = JSON.parse(localStorage.getItem('seahorses_matchstats') || '[]');
+    local.push({ round:currentRound, team:currentTeam, records, date:new Date().toISOString() });
+    localStorage.setItem('seahorses_matchstats', JSON.stringify(local));
+    showSuccess(fixture, records);
+  }
+});
+
+function showSuccess(fixture, records) {
+  let tries=0,conv=0,pen=0;
+  records.forEach(r => { tries+=r.tries; conv+=r.convMade; pen+=r.penalties; });
+  document.getElementById('s-tries').textContent = tries;
+  document.getElementById('s-conv').textContent  = conv;
+  document.getElementById('s-pen').textContent   = pen;
+  document.getElementById('s-pts').textContent   = tries*5+conv*2+pen*3;
+  document.getElementById('success-label').textContent =
+    fixture ? `Round ${fixture.round} · vs ${fixture.opponent}` : `Round ${currentRound}`;
+  document.getElementById('main-form').style.display = 'none';
+  document.getElementById('success-screen').style.display = 'block';
+}
+
+document.getElementById('another-btn').addEventListener('click', () => {
+  PLAYERS.forEach(p => { stats[p.name] = {tries:0,convMade:0,convMissed:0,penalties:0}; });
+  screenshotImages.length = 0;
+  screenshotDataUrls.length = 0;
+  renderThumbs();
+  uploadPrompt.style.display = 'block';
+  document.getElementById('upload-area').classList.remove('has-image');
+  analyzeBtn.style.display = 'none';
+  analyzeStatus.textContent = '';
+  document.getElementById('success-screen').style.display = 'none';
+  document.getElementById('main-form').style.display = 'block';
+  buildPlayerForm(); updateTotals();
+});
+
+// ── Season tab ────────────────────────────────────────────────────────────
+let seasonMatchStats = [];
+let seasonLoaded = false;
+let liveResults = {}; // 'round|teamLabel' -> { result, ourScore, oppScore }
+
+async function loadResults() {
+  try {
+    const d = await (await fetch(APPS_SCRIPT_URL + '?action=results')).json();
+    if (d && d.success) liveResults = d.results || {};
+  } catch(e) { /* keep */ }
+}
+
+// Effective result: live (entered via stats) wins over the static fixture result
+function effectiveResult(teamKey, f) {
+  const label = teamKey === 'seahorses' ? 'Coogee 11' : 'Coogee Barbarians 11';
+  const live = liveResults[`${f.round}|${label}`];
+  return (live && live.result) ? live.result : f.result;
+}
+
+async function loadSeasonData() {
+  try {
+    const res = await fetch(APPS_SCRIPT_URL + '?action=getMatchStats');
+    const data = await res.json();
+    if (data.success) seasonMatchStats = data.records || [];
+  } catch(e) { /* offline — show fixtures only */ }
+  await loadResults();
+  seasonLoaded = true;
+  renderSeason();
+}
+
+function resultPill(r) {
+  if (!r) return '';
+  if (r === 'Washout') return '<span class="pill pill-wo">Washout</span>';
+  const cls = r.startsWith('W')?'pill-w':r.startsWith('L')?'pill-l':'pill-d';
+  return `<span class="pill ${cls}">${r}</span>`;
+}
+
+function fixtureRows(fixtures, teamKey) {
+  return fixtures.map(f=>{
+    const result = effectiveResult(teamKey, f);
+    return `
+    <div class="summary-row">
+      <span class="summary-key">R${f.round} vs ${f.opponent}</span>
+      <span class="summary-val">${resultPill(result)||'<span style="color:var(--muted);font-weight:400">Upcoming</span>'}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderSeason() {
+  const el = document.getElementById('season-tab');
+
+  // Aggregate scoring per player
+  const scorerMap = {};
+  seasonMatchStats.forEach(r => {
+    if (!scorerMap[r.player]) scorerMap[r.player] = {tries:0,convMade:0,convMissed:0,penalties:0,points:0};
+    scorerMap[r.player].tries      += +r.tries||0;
+    scorerMap[r.player].convMade   += +r.convMade||0;
+    scorerMap[r.player].convMissed += +r.convMissed||0;
+    scorerMap[r.player].penalties  += +r.penalties||0;
+    scorerMap[r.player].points     += +r.points||0;
+  });
+
+  // Top 10 scorers
+  const topScorers = Object.entries(scorerMap)
+    .sort((a,b)=> b[1].points-a[1].points || b[1].tries-a[1].tries)
+    .slice(0,10);
+
+  const scorersSection = topScorers.length ? `
+    <div class="section-label" style="margin-top:1.25rem">Top 10 scorers</div>
+    <div style="overflow-x:auto;border-radius:12px;border:1px solid var(--border)">
+    <table class="report-table">
+      <thead><tr>
+        <th style="text-align:left">#</th><th style="text-align:left">Player</th>
+        <th>T</th><th>C</th><th>P</th><th>Pts</th>
+      </tr></thead>
+      <tbody>
+        ${topScorers.map(([name,s],i)=>`
+          <tr>
+            <td style="color:var(--muted)">${i+1}</td>
+            <td style="text-align:left;font-weight:600">${name}</td>
+            <td>${s.tries||'·'}</td>
+            <td>${s.convMade||'·'}</td>
+            <td>${s.penalties||'·'}</td>
+            <td style="color:var(--teal);font-weight:700">${s.points}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">T = tries · C = conversions · P = penalties · Pts = total points</div>
+    ` : '';
+
+  // Kickers
+  const kickers = Object.entries(scorerMap)
+    .filter(([,s]) => s.convMade+s.convMissed+s.penalties > 0)
+    .map(([name,s]) => {
+      const convAtt = s.convMade + s.convMissed;
+      const convPct = convAtt > 0 ? Math.round(s.convMade/convAtt*100) : null;
+      const kickPts = s.convMade*2 + s.penalties*3;
+      return { name, convMade:s.convMade, convAtt, convPct, penalties:s.penalties, kickPts };
+    })
+    .sort((a,b)=> b.kickPts-a.kickPts);
+
+  const kickersSection = kickers.length ? `
+    <div class="section-label" style="margin-top:1.5rem">Kickers</div>
+    <div style="overflow-x:auto;border-radius:12px;border:1px solid var(--border)">
+    <table class="report-table">
+      <thead><tr>
+        <th style="text-align:left">Player</th>
+        <th>Conv</th><th>Pen</th><th>Att</th><th>%</th><th>Pts</th>
+      </tr></thead>
+      <tbody>
+        ${kickers.map(k=>{
+          const pc = k.convPct===null?'var(--muted)':k.convPct>=75?'#34c759':k.convPct>=50?'#f5a623':'#ff3b30';
+          return `
+          <tr>
+            <td style="text-align:left;font-weight:600">${k.name}</td>
+            <td>${k.convMade}</td>
+            <td>${k.penalties||'·'}</td>
+            <td>${k.convAtt}</td>
+            <td style="color:${pc};font-weight:600">${k.convPct!==null?k.convPct+'%':'—'}</td>
+            <td style="color:var(--teal);font-weight:700">${k.kickPts}</td>
+          </tr>`;}).join('')}
+      </tbody>
+    </table>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">Conv = conversions made · Att = attempts · % = conversion success · Pts = kicking points (conv×2 + pen×3)</div>
+    ` : '';
+
+  el.innerHTML = `
+    <div class="section-label">Coogee 11 — Friday nights</div>
+    <div class="summary-card" style="margin-bottom:1rem">${fixtureRows(FIXTURES.seahorses,'seahorses')}</div>
+    <div class="section-label">Coogee Barbarians 11 — Sunday mornings</div>
+    <div class="summary-card" style="margin-bottom:1rem">${fixtureRows(FIXTURES.barbarians,'barbarians')}</div>
+    ${scorersSection}
+    ${kickersSection}
+    ${!seasonMatchStats.length && seasonLoaded ? '<div style="font-size:12px;color:var(--muted);margin-top:1rem;text-align:center">No scoring data yet — enter match stats to populate.</div>' : ''}`;
+}
+
+// Tab switching
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    document.getElementById('season-tab').style.display = tab==='season' ? 'block' : 'none';
+    document.getElementById('enter-tab').style.display  = tab==='enter'  ? 'block' : 'none';
+    document.getElementById('team-tab').style.display   = tab==='team'   ? 'block' : 'none';
+    document.getElementById('draw-tab').style.display    = tab==='draw'   ? 'block' : 'none';
+    if (tab==='season' && !seasonLoaded) loadSeasonData();
+    if (tab==='team') initTeamTab();
+    if (tab==='draw') initDrawTab();
+  });
+});
+
+// ── Draw Details tab ────────────────────────────────────────────────────────
+let drawTeam = 'seahorses';
+let drawRound = null;
+let drawPhotoUrl = localStorage.getItem('drawPhotoUrl') || '';
+let drawPhotoPos = +(localStorage.getItem('drawPhotoPos') || 30);
+
+function pad2(n){ return String(n).padStart(2,'0'); }
+function minus30(timeStr) {
+  // "8:00pm" / "10:20am" -> 30 min earlier, same format
+  const m = String(timeStr||'').trim().match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/i);
+  if (!m) return timeStr || '';
+  let h = +m[1] % 12; if (m[3].toLowerCase()==='pm') h += 12;
+  let total = h*60 + (+m[2]) - 30;
+  if (total < 0) total += 24*60;
+  let hh = Math.floor(total/60), mm = total%60;
+  const ap = hh>=12 ? 'pm' : 'am'; let h12 = hh%12; if (h12===0) h12=12;
+  return `${h12}:${pad2(mm)}${ap}`;
+}
+function dayWord(team){ return team==='seahorses' ? 'Friday' : 'Sunday'; }
+function mapsLink(venue){
+  const loc = (venue||'').replace(/\s+Field\s+\d+/i, '');
+  return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(loc + ', Sydney NSW');
+}
+function availLink(team){
+  const base = 'https://randwickwarrior.github.io/rugby-team-manager/';
+  return base + (team==='seahorses' ? 'availability-fri.html' : 'availability-sun.html');
+}
+
+function drawFixture(){ return (FIXTURES[drawTeam]||[]).find(f => f.round === drawRound); }
+
+function initDrawTab() {
+  if (drawRound === null) {
+    const f = nextFixtureFor(drawTeam);
+    drawRound = f ? f.round : (FIXTURES[drawTeam][0] && FIXTURES[drawTeam][0].round);
+  }
+  renderDrawTab();
+}
+
+function nextFixtureFor(team){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const up = (FIXTURES[team]||[]).filter(f=>new Date(f.isoDate)>=today).sort((a,b)=>new Date(a.isoDate)-new Date(b.isoDate));
+  return up[0] || (FIXTURES[team]||[])[ (FIXTURES[team]||[]).length-1 ];
+}
+
+function drawMessage() {
+  const f = drawFixture(); if (!f) return '';
+  const warm = minus30(f.time);
+  return `This ${dayWord(drawTeam)} we are playing against ${f.opponent} at ${f.venue} with ${f.time} kickoff. Please be there by ${warm} for warmup.`;
+}
+
+function renderDrawTab() {
+  const el = document.getElementById('draw-tab');
+  const f = drawFixture();
+  const roundOpts = (FIXTURES[drawTeam]||[]).map(x =>
+    `<option value="${x.round}" ${x.round===drawRound?'selected':''}>Round ${x.round} — ${x.opponent} (${x.date})</option>`).join('');
+  const warm = f ? minus30(f.time) : '';
+
+  el.innerHTML = `
+    <div class="section-card">
+      <div class="grid-2">
+        <div><div class="field-label">Team</div>
+          <select id="draw-team">
+            <option value="seahorses" ${drawTeam==='seahorses'?'selected':''}>Coogee 11 (Friday)</option>
+            <option value="barbarians" ${drawTeam==='barbarians'?'selected':''}>Coogee Barbarians 11 (Sunday)</option>
+          </select>
+        </div>
+        <div><div class="field-label">Round</div>
+          <select id="draw-round">${roundOpts}</select>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-label">Background photo (optional)</div>
+      <div class="draw-photo-area ${drawPhotoUrl?'has':''}" id="draw-photo-area">
+        <input type="file" class="upload-input" id="draw-photo-input" accept="image/*">
+        <div class="upload-text" style="${drawPhotoUrl?'display:none':''}"><div style="font-size:30px">📷</div><strong>Tap to choose a team photo</strong><br>It becomes the badge background</div>
+        <div style="${drawPhotoUrl?'':'display:none'};font-size:13px;color:var(--teal)">✓ Photo loaded — adjust focus below</div>
+      </div>
+      ${drawPhotoUrl ? `
+        <div class="field-label">Vertical focus (move to the faces)</div>
+        <input type="range" min="0" max="100" value="${drawPhotoPos}" class="draw-slider" id="draw-pos">
+        <button class="btn btn-sm" id="draw-facefocus" style="margin-top:8px">✨ Auto-focus faces</button>
+      ` : ''}
+    </div>
+
+    <div class="section-label">Preview</div>
+    <div class="draw-badge" id="draw-badge">
+      ${drawPhotoUrl
+        ? `<div class="draw-bg" id="draw-bg-img" style="background-image:url('${drawPhotoUrl}');background-size:cover;background-position:center ${drawPhotoPos}%"></div>`
+        : `<div class="draw-bg" style="background:linear-gradient(135deg,#0a1628,#132040)"></div>`}
+      <div class="draw-overlay"></div>
+      <div class="draw-content">
+        <div class="draw-top">
+          <div class="draw-crest">🏉</div>
+          <div><div class="draw-club">Coogee <span>Seahorses</span></div><div class="draw-sub">${drawTeam==='seahorses'?'Coogee 11 · Friday':'Barbarians 11 · Sunday'} · U11</div></div>
+        </div>
+        <div class="draw-when">
+          <div class="draw-day">This ${dayWord(drawTeam)}</div>
+          <div class="draw-vs">vs ${f?f.opponent:'TBC'}</div>
+          <div class="draw-meta">
+            <div class="row">📅 ${f?f.date:''}</div>
+            <div class="row">⏱ ${f?f.time:''} kick-off</div>
+            <div class="row">📍 ${f?f.venue:''}</div>
+          </div>
+          <div class="draw-warm">⚡ Be there by ${warm} for warm-up</div>
+          <div class="draw-rsvp">RSVP your availability — link in the message ›</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="draw-actions">
+      <button class="btn btn-primary" id="draw-copy-img">📸 Copy image</button>
+      <button class="btn" id="draw-copy-txt">📋 Copy message</button>
+    </div>
+
+    <div class="section-label" style="margin-top:1.25rem">Message (paste as the caption)</div>
+    <div class="draw-caption-box" id="draw-caption">${drawCaptionHtml()}</div>
+
+    <div style="font-size:11px;color:var(--muted);margin-top:8px">Tip: paste the image first, then paste the message as the caption — the links are clickable in the text but not in the image.</div>`;
+
+  attachDrawEvents();
+}
+
+function drawCaption() {
+  const f = drawFixture(); if (!f) return '';
+  return `🏉 ${drawTeam==='seahorses'?'Coogee 11':'Coogee Barbarians 11'} — Round ${f.round}\n\n` +
+    drawMessage() + `\n\n` +
+    `✅ Availability: ${availLink(drawTeam)}\n` +
+    `📍 Venue map: ${mapsLink(f.venue)}`;
+}
+
+function drawCaptionHtml() {
+  const text = drawCaption();
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/(https?:\/\/\S+)/g, '<span style="color:#8a9ab8">$1</span>');
+}
+
+function attachDrawEvents() {
+  document.getElementById('draw-team').addEventListener('change', e => {
+    drawTeam = e.target.value;
+    const nf = nextFixtureFor(drawTeam); drawRound = nf ? nf.round : null;
+    renderDrawTab();
+  });
+  document.getElementById('draw-round').addEventListener('change', e => { drawRound = +e.target.value; renderDrawTab(); });
+
+  const input = document.getElementById('draw-photo-input');
+  if (input) input.addEventListener('change', async e => {
+    const file = e.target.files[0]; if (!file) return;
+    try {
+      drawPhotoUrl = await fileToJpeg(file, 1600, 0.9); drawPhotoPos = 30;
+      localStorage.setItem('drawPhotoUrl', drawPhotoUrl);
+      localStorage.setItem('drawPhotoPos', drawPhotoPos);
+      renderDrawTab();
+    } catch(err){ showToast('Could not load photo'); }
+  });
+
+  const pos = document.getElementById('draw-pos');
+  if (pos) pos.addEventListener('input', () => {
+    drawPhotoPos = +pos.value;
+    localStorage.setItem('drawPhotoPos', drawPhotoPos);
+    const bg = document.getElementById('draw-bg-img');
+    if (bg) bg.style.backgroundPosition = `center ${drawPhotoPos}%`;
+  });
+
+  const ff = document.getElementById('draw-facefocus');
+  if (ff) ff.addEventListener('click', autoFocusFaces);
+
+  const ci = document.getElementById('draw-copy-img');
+  if (ci) ci.addEventListener('click', copyDrawImage);
+  const ct = document.getElementById('draw-copy-txt');
+  if (ct) ct.addEventListener('click', () => {
+    navigator.clipboard.writeText(drawCaption()).then(()=>{ ct.textContent='✓ Copied!'; setTimeout(()=>ct.textContent='📋 Copy message',2000); });
+  });
+}
+
+async function autoFocusFaces() {
+  const btn = document.getElementById('draw-facefocus');
+  if (!('FaceDetector' in window)) { showToast('Auto-focus not supported on this browser — use the slider'); return; }
+  btn.textContent = '⏳ Finding faces…';
+  try {
+    const tmpImg = new Image();
+    tmpImg.src = drawPhotoUrl;
+    await new Promise((res, rej) => { tmpImg.onload = res; tmpImg.onerror = rej; });
+    const fd = new FaceDetector({ fastMode:true, maxDetectedFaces:10 });
+    const faces = await fd.detect(tmpImg);
+    if (faces.length) {
+      const avg = faces.reduce((s,f)=>s + (f.boundingBox.top + f.boundingBox.height/2), 0) / faces.length;
+      drawPhotoPos = Math.round(Math.max(0, Math.min(100, avg / tmpImg.naturalHeight * 100)));
+      localStorage.setItem('drawPhotoPos', drawPhotoPos);
+      const bg = document.getElementById('draw-bg-img');
+      if (bg) bg.style.backgroundPosition = `center ${drawPhotoPos}%`;
+      const slider = document.getElementById('draw-pos'); if (slider) slider.value = drawPhotoPos;
+      showToast(`Focused on ${faces.length} face${faces.length>1?'s':''}`);
+    } else showToast('No faces detected — use the slider');
+  } catch(e) { showToast('Face detection failed — use the slider'); }
+  btn.textContent = '✨ Auto-focus faces';
+}
+
+async function copyDrawImage() {
+  const badge = document.getElementById('draw-badge');
+  const btn = document.getElementById('draw-copy-img');
+  if (typeof html2canvas === 'undefined') { showToast('Image tool unavailable'); return; }
+  btn.textContent = '⏳ Generating…'; btn.disabled = true;
+  try {
+    const rect = badge.getBoundingClientRect();
+    const canvas = await html2canvas(badge, { scale:3, useCORS:true, allowTaint:true, backgroundColor:null, logging:false, width:rect.width, height:rect.height });
+    canvas.toBlob(async blob => {
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        btn.textContent = '✓ Copied!'; setTimeout(()=>{ btn.textContent='📸 Copy image'; btn.disabled=false; }, 2500);
+      } catch(err) {
+        const url = URL.createObjectURL(blob); const a=document.createElement('a');
+        a.href=url; a.download=`draw-${drawTeam}-r${drawRound}.png`; a.click(); URL.revokeObjectURL(url);
+        btn.textContent='📸 Copy image'; btn.disabled=false;
+      }
+    }, 'image/png');
+  } catch(e) { showToast('Could not generate image'); btn.textContent='📸 Copy image'; btn.disabled=false; }
+}
+
+// ── Match Day Team tab ──────────────────────────────────────────────────────
+// U11 position labels by slot (1-12 starters, 13-18 bench)
+const U11_POSITIONS = [
+  'Loosehead Prop','Hooker','Tight Head Prop','Left Lock','Right Lock','Number Eight',
+  'Scrum Half','Fly Half','Left Wing','Left Centre','Right Centre','Right Wing'
+];
+const U11_BENCH = 6;
+let mdtTeam = 'seahorses';
+let mdtRound = null;
+let mdtSelected = {};   // {slotNum: playerName} — midweek selection
+let mdtPlayed = {};     // {slotNum: playerName} — as played
+let mdtLineupImages = [];
+let mdtLineupUrls = [];
+
+function teamLabel(key){ return key==='seahorses' ? 'Coogee 11' : 'Coogee Barbarians 11'; }
+
+function initTeamTab() {
+  if (mdtRound === null) {
+    // default to most recent played round of current team
+    const played = FIXTURES[mdtTeam].filter(f=>f.result && f.result!=='Washout');
+    mdtRound = played.length ? played[played.length-1].round : FIXTURES[mdtTeam][0].round;
+  }
+  renderTeamTab();
+  loadTeams();
+}
+
+async function loadTeams() {
+  const label = teamLabel(mdtTeam);
+  const [sel, pl] = await Promise.all([
+    fetch(`${APPS_SCRIPT_URL}?action=team&round=${mdtRound}&team=${encodeURIComponent(label)}&type=selected`).then(r=>r.json()).catch(()=>null),
+    fetch(`${APPS_SCRIPT_URL}?action=team&round=${mdtRound}&team=${encodeURIComponent(label)}&type=played`).then(r=>r.json()).catch(()=>null)
+  ]);
+  mdtSelected = {}; mdtPlayed = {};
+  if (sel && sel.slots) for (const [k,v] of Object.entries(sel.slots)) mdtSelected[+k]=v;
+  if (pl && pl.slots)  for (const [k,v] of Object.entries(pl.slots))  mdtPlayed[+k]=v;
+  // If no played team yet, pre-fill played from selected so manager can adjust
+  if (Object.keys(mdtPlayed).length === 0) mdtPlayed = {...mdtSelected};
+  renderTeamTab();
+}
+
+function posLabel(slot) {
+  return slot <= 12 ? `${slot}. ${U11_POSITIONS[slot-1]}` : `Sub ${slot-12}`;
+}
+
+function playerOptions(selectedName) {
+  const sorted = [...PLAYERS].sort((a,b)=>a.name.localeCompare(b.name));
+  return '<option value="">— none —</option>' + sorted.map(p =>
+    `<option value="${p.name}" ${p.name===selectedName?'selected':''}>${p.name}</option>`).join('');
+}
+
+function renderTeamTab() {
+  const el = document.getElementById('team-tab');
+  const fixtures = FIXTURES[mdtTeam];
+  const roundOpts = fixtures.map(f=>`<option value="${f.round}" ${f.round===mdtRound?'selected':''}>Round ${f.round} — ${f.opponent} (${f.date})${f.result?' · '+f.result:''}</option>`).join('');
+  const slots = [...Array(12).keys()].map(i=>i+1).concat([...Array(U11_BENCH).keys()].map(i=>i+13));
+
+  function posCard(slot) {
+    const sel = mdtSelected[slot] || '';
+    const pl  = mdtPlayed[slot] || '';
+    const diff = sel !== pl;
+    const posName = slot<=12
+      ? `<span class="num">${slot}</span> · ${U11_POSITIONS[slot-1]}`
+      : `<span class="num">S${slot-12}</span> · Bench`;
+    return `
+      <div class="mdt-card ${diff?'changed':''}">
+        <div class="mdt-card-pos">${posName}</div>
+        <div class="mdt-line">
+          <span class="mdt-line-label sel">Selected</span>
+          <span class="mdt-selname">${sel||'—'}</span>
+        </div>
+        <div class="mdt-line">
+          <span class="mdt-line-label played">Played</span>
+          <select class="mdt-fullsel ${diff?'changed':''}" data-side="played" data-slot="${slot}">${playerOptions(pl)}</select>
+        </div>
+      </div>`;
+  }
+
+  el.innerHTML = `
+    <div class="section-card">
+      <div class="grid-2">
+        <div><div class="field-label">Team</div>
+          <select id="mdt-team-select">
+            <option value="seahorses" ${mdtTeam==='seahorses'?'selected':''}>Coogee 11 (Friday)</option>
+            <option value="barbarians" ${mdtTeam==='barbarians'?'selected':''}>Coogee Barbarians 11 (Sunday)</option>
+          </select>
+        </div>
+        <div><div class="field-label">Round</div>
+          <select id="mdt-round-select">${roundOpts}</select>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-label">Rugby Xplorer line-up screenshots (optional)</div>
+      <div class="upload-area" id="mdt-upload-area">
+        <input type="file" class="upload-input" id="mdt-input" accept="image/*" multiple>
+        <div id="mdt-upload-prompt"><div class="upload-icon">👥</div>
+          <div class="upload-text"><strong>Tap to upload</strong> the Line-Up screen(s)<br>Fills the "Played" rows automatically</div></div>
+      </div>
+      <div class="thumbs" id="mdt-thumbs"></div>
+      <button class="analyze-btn" id="mdt-analyze">🔍 Read line-up</button>
+      <div class="analyze-status" id="mdt-status"></div>
+    </div>
+
+    <div class="section-label">Starting team — positions 1–12</div>
+    ${slots.filter(s=>s<=12).map(posCard).join('')}
+    <div class="mdt-bench-label">Bench</div>
+    ${slots.filter(s=>s>12).map(posCard).join('')}
+
+    <div class="submit-section">
+      <button class="submit-btn" id="mdt-save">Save Played Team</button>
+      <div class="submit-hint" style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px">Green border = the played team differs from the midweek selection</div>
+    </div>`;
+
+  attachTeamTabEvents();
+}
+
+function attachTeamTabEvents() {
+  document.getElementById('mdt-team-select').addEventListener('change', e => {
+    mdtTeam = e.target.value;
+    const played = FIXTURES[mdtTeam].filter(f=>f.result && f.result!=='Washout');
+    mdtRound = played.length ? played[played.length-1].round : FIXTURES[mdtTeam][0].round;
+    mdtLineupImages=[]; mdtLineupUrls=[];
+    renderTeamTab(); loadTeams();
+  });
+  document.getElementById('mdt-round-select').addEventListener('change', e => {
+    mdtRound = parseInt(e.target.value);
+    mdtLineupImages=[]; mdtLineupUrls=[];
+    renderTeamTab(); loadTeams();
+  });
+  document.querySelectorAll('.mdt-fullsel').forEach(sel => {
+    sel.addEventListener('change', () => {
+      const slot = +sel.dataset.slot;
+      const store = sel.dataset.side === 'selected' ? mdtSelected : mdtPlayed;
+      if (sel.value) store[slot] = sel.value; else delete store[slot];
+      renderTeamTab();
+    });
+  });
+
+  // Line-up screenshot upload
+  const input = document.getElementById('mdt-input');
+  input.addEventListener('change', async e => {
+    const files = Array.from(e.target.files||[]);
+    if (!files.length) return;
+    document.getElementById('mdt-status').textContent = 'Processing…';
+    for (const file of files) {
+      try { const u = await fileToJpeg(file); mdtLineupImages.push(u.split(',')[1]); mdtLineupUrls.push(u); } catch(err){}
+    }
+    input.value=''; renderMdtThumbs();
+  });
+
+  const analyze = document.getElementById('mdt-analyze');
+  analyze.addEventListener('click', async () => {
+    if (!mdtLineupImages.length) { showToast('Upload a line-up screenshot first'); return; }
+    analyze.disabled = true; analyze.textContent='⏳ Reading…';
+    document.getElementById('mdt-status').textContent='Reading line-up…';
+    try {
+      const res = await fetch(APPS_SCRIPT_URL, { method:'POST', body: JSON.stringify({
+        action:'analyzeLineup', imagesBase64:mdtLineupImages, team:teamLabel(mdtTeam), roster:PLAYERS.map(p=>p.name)
+      })});
+      const data = await res.json();
+      if (data.success && data.lineup) {
+        applyLineup(data.lineup);
+        document.getElementById('mdt-status').textContent = `✅ Read ${data.lineup.length} players — review the Played column`;
+      } else {
+        document.getElementById('mdt-status').textContent = '⚠️ Could not read line-up — adjust manually';
+      }
+    } catch(e) { document.getElementById('mdt-status').textContent='⚠️ Read failed — adjust manually'; }
+    analyze.disabled=false; analyze.textContent='🔍 Re-read line-up';
+  });
+  renderMdtThumbs();
+
+  document.getElementById('mdt-save').addEventListener('click', saveMdtPlayed);
+}
+
+function renderMdtThumbs() {
+  const t = document.getElementById('mdt-thumbs');
+  if (!t) return;
+  t.innerHTML = mdtLineupUrls.map((u,i)=>`<div class="thumb"><img src="${u}"><span class="thumb-num">${i+1}</span><button type="button" class="thumb-remove" data-i="${i}">×</button></div>`).join('');
+  t.querySelectorAll('.thumb-remove').forEach(b=>b.addEventListener('click',()=>{ mdtLineupImages.splice(+b.dataset.i,1); mdtLineupUrls.splice(+b.dataset.i,1); renderMdtThumbs(); }));
+  const has = mdtLineupUrls.length > 0;
+  const area = document.getElementById('mdt-upload-area');
+  const prompt = document.getElementById('mdt-upload-prompt');
+  if (area && prompt) { area.classList.toggle('has-image',has); prompt.style.display = has?'none':'block'; }
+  // Show the "Read line-up" button only once screenshots are ready
+  const btn = document.getElementById('mdt-analyze');
+  if (btn) { btn.style.display = has ? 'block' : 'none'; if (has) btn.textContent = '🔍 Read line-up'; }
+  const status = document.getElementById('mdt-status');
+  if (status) status.textContent = has ? `${mdtLineupUrls.length} screenshot${mdtLineupUrls.length>1?'s':''} ready — tap “Read line-up”` : '';
+}
+
+function findRosterName(name) {
+  if (!name) return null;
+  const lower = name.toLowerCase().trim();
+  const surname = lower.split(' ').slice(-1)[0];
+  let m = PLAYERS.find(p=>p.name.toLowerCase()===lower); if (m) return m.name;
+  m = PLAYERS.find(p=>lower.includes(p.name.toLowerCase())||p.name.toLowerCase().includes(lower)); if (m) return m.name;
+  m = PLAYERS.find(p=>p.name.toLowerCase().split(' ').slice(-1)[0]===surname); if (m) return m.name;
+  m = PLAYERS.find(p=>p.name.toLowerCase().split(' ')[0]===lower.split(' ')[0]); return m?m.name:null;
+}
+
+function applyLineup(lineup) {
+  // lineup: [{order, jersey, player}] in position order (starters first, then bench)
+  mdtPlayed = {};
+  lineup.sort((a,b)=>(a.order||0)-(b.order||0)).forEach((row, idx) => {
+    const slot = row.order && row.order>=1 ? row.order : idx+1;
+    const name = findRosterName(row.player);
+    if (name && slot>=1 && slot<=18) mdtPlayed[slot] = name;
+  });
+  renderTeamTab();
+  showToast('Line-up read — review & save');
+}
+
+async function saveMdtPlayed() {
+  const btn = document.getElementById('mdt-save');
+  btn.textContent='Saving…'; btn.disabled=true;
+  try {
+    const res = await fetch(APPS_SCRIPT_URL, { method:'POST', body: JSON.stringify({
+      action:'saveTeam', round:mdtRound, team:teamLabel(mdtTeam), grade:'u11', type:'played', slots:mdtPlayed
+    })});
+    const data = await res.json();
+    if (data.success) { showToast('Played team saved ✓'); }
+    else showToast('Save failed');
+  } catch(e) { showToast('Connection error'); }
+  btn.textContent='Save Played Team'; btn.disabled=false;
+}
+
+// Init
+populateRounds();
+buildPlayerForm();
+loadSeasonData(); // Season is the default tab
+</script>
+</body>
+</html>
